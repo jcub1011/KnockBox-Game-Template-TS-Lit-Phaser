@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover"
+    />
+    <meta name="theme-color" content="#06080f" />
+    <title>KnockBox Game</title>
+  </head>
+  <body>
+    <!-- Phaser FX canvas: full-window overlay ABOVE the UI, click-through. -->
+    <div id="fx" aria-hidden="true"></div>
+
+    <!-- The DOM UI (Lit, light DOM). -->
+    <game-app></game-app>
+
+    <!-- First-paint loading screen; removed by main.ts once the app is ready. -->
+    <div id="boot">
+      <div class="boot-mark">KNOCK<span>BOX</span></div>
+      <div class="boot-sub">loading…</div>
+      <div class="boot-bar"><i></i></div>
+    </div>
+
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>

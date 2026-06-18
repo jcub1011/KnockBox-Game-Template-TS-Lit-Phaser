@@ -1,0 +1,15 @@
+/* Design tokens — colors, fonts, motion. Grow as the visual language develops. */
+:root {
+  --bg: #06080f;
+  --fg: #e8ecf6;
+  --muted: #8b93a7;
+  --accent: #00e5ff;
+  --accent-2: #ff2e8b;
+
+  --font-ui:
+    "Chakra Petch", system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+
+  /* Per-element shake amplitude, set by fx.shake(). */
+  --shake: 0px;
+}

@@ -1,0 +1,6 @@
+node_modules/
+dist/
+dist-game/
+.playwright-mcp/
+*.local
+.DS_Store

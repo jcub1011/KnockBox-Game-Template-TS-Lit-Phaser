@@ -1,0 +1,35 @@
+{
+  "name": "knockbox-game-template",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "A TypeScript + Lit + Phaser starter template for building networked games on the KnockBox platform.",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc --noEmit && vite build",
+    "preview": "vite preview",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "lint": "eslint .",
+    "lint:fix": "eslint . --fix",
+    "format": "prettier --write \"src/**/*.{ts,css}\"",
+    "format:check": "prettier --check \"src/**/*.{ts,css}\"",
+    "export:game": "node tools/pack-game/pack-game.mjs --build \"npm run build\" --in dist --manifest export/GAME.json --out dist-game"
+  },
+  "dependencies": {
+    "lit": "^3.3.3",
+    "phaser": "^4.1.0"
+  },
+  "devDependencies": {
+    "@eslint/js": "^10.0.1",
+    "@types/node": "^25.9.3",
+    "eslint": "^10.5.0",
+    "eslint-config-prettier": "^10.1.8",
+    "happy-dom": "^20.10.4",
+    "prettier": "^3.8.4",
+    "typescript": "^5.5.0",
+    "typescript-eslint": "^8.61.1",
+    "vite": "^8.0.16",
+    "vitest": "^4.1.9"
+  }
+}

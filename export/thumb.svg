@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="320" viewBox="0 0 512 320" role="img" aria-label="KnockBox Game Template">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#001d3d" />
+      <stop offset="1" stop-color="#06080f" />
+    </linearGradient>
+    <linearGradient id="ink" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#00e5ff" />
+      <stop offset="1" stop-color="#ff2e8b" />
+    </linearGradient>
+  </defs>
+  <rect width="512" height="320" fill="url(#bg)" />
+  <rect x="156" y="96" width="200" height="128" rx="14" fill="none" stroke="url(#ink)" stroke-width="6" />
+  <circle cx="256" cy="160" r="30" fill="url(#ink)" />
+  <text x="256" y="280" fill="#e8ecf6" font-family="system-ui, sans-serif" font-size="34" font-weight="700" text-anchor="middle" letter-spacing="2">KNOCKBOX</text>
+</svg>
