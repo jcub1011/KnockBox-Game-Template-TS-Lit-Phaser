@@ -132,7 +132,3 @@ The same applies to `tools/pack-game/pack-game.mjs` (copy from `KnockBox-Games/t
   `serialize.ts`, and optionally use the vendored `addons/knockbox/kb-authority.js` helper).
 - **UI** — grow `game-app` into real views (lobby, HUD, game-over) as Lit components.
 - **Assets** — drop sprites/audio into `public/assets/` and load them in `main.ts`.
-
-## License
-
-MIT — see [LICENSE](./LICENSE).
