@@ -65,6 +65,21 @@ game-app {
   font-family: var(--font-mono);
   font-size: 1.25rem;
 }
+
+/* Replicated scoreboard — rendered straight from the state the authority published. */
+.game-scores {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: grid;
+  gap: 0.25rem;
+  font-family: var(--font-mono);
+  color: var(--muted);
+}
+.game-scores li.is-me {
+  color: var(--fg);
+  font-weight: 600;
+}
 .game-shell button {
   justify-self: center;
   padding: 0.6rem 1.4rem;

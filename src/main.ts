@@ -8,6 +8,7 @@
 import "./ui/styles/index.css";
 import { attachKnockBoxSink, createLogger } from "./log";
 import { detectLaunch } from "./net/launch";
+import { AuthorityController } from "./net/authorityController";
 import { fx } from "./ui/fx/fx";
 // Side-effect import registers <game-app>; the type import is erased at build.
 import "./ui/app/game-app";
@@ -41,10 +42,18 @@ function boot(): void {
   // solo mode (no plugin → undefined) are both handled transparently.
   attachKnockBoxSink(() => fx.knockbox()?.log);
 
-  // Hand the launch mode to the app shell and let it build its controller.
+  // Build the controller HERE, synchronously, while we are still in the same task
+  // that booted the FX game. KBAuthority requests its first snapshot from the
+  // transport's `ready` event, and the plugin can fire that as soon as it starts —
+  // so anything that defers (a microtask, an element lifecycle hook) risks missing
+  // it. AuthorityController also carries a re-request guard for the same reason.
+  const net = fx.knockbox();
   const app = document.querySelector("game-app") as GameApp;
   app.launchMode = launchMode;
   fx.setShakeTarget(app);
+
+  if (!net) throw new Error("KnockBox plugin was not registered — cannot start the game");
+  app.attach(new AuthorityController(net));
   log.info("app shell mounted");
 
   // Dismiss the loading screen.

@@ -1,45 +1,45 @@
 /*
  * The seam between gameplay and transport. The Lit UI talks only to a
- * GameController; it never touches the MatchController or the network directly.
- * LocalController (solo) drives a real MatchController; KnockBoxController drives
- * it host-authoritatively over the KnockBox network. Both expose the same surface.
+ * GameController; it never touches the network or the replicated state directly.
  *
- * `match` is typed as the structural `MatchLike` supertype so a guest's read-only
- * mirror can satisfy it too (on a guest, mutators route to host intents).
+ * Under server authority this seam is deliberately ASYMMETRIC, and that asymmetry
+ * is the whole model:
+ *
+ *   reading   is local and synchronous — `view.state` is the last state the
+ *             authority published.
+ *   writing   is a request, not a call — `sendIntent` posts to the server and
+ *             returns nothing. The authority may silently reject it (it returns
+ *             null and broadcasts nothing), so there is no result to hand back.
+ *             The UI finds out what happened by re-rendering on `changed`.
+ *
+ * That is why there is no `addScore(): SubmitResult` any more, and no `tick(dt)`:
+ * the server owns the simulation clock. The rAF loop in the UI is for presentation
+ * (FX, interpolation) only.
  */
 
 import type { Emitter } from "../game/emitter";
-import type { MatchController, MatchEvents } from "../game/match";
-import type { MatchState, PlayerState, SubmitResult } from "../game/types";
+import type { Intent, MatchState } from "../game/types";
+import type { KBPlayer } from "../../addons/knockbox/knockbox-phaser";
 
-/** The subset of MatchController the presentation layer reads + mutates. The
- *  real MatchController satisfies this structurally; a guest mirror would
- *  implement it explicitly (routing mutators to host intents). */
-export interface MatchLike {
-  readonly state: MatchState;
-  readonly events: Emitter<MatchEvents>;
-  readonly current: PlayerState;
-  /** Demo action — replace with your game's real action surface. */
-  addScore(playerId: string, points: number): SubmitResult;
+export interface ControllerEvents {
+  /** The authority published new state — re-render. */
+  changed: { state: Readonly<MatchState> };
+  /** The roster or the lobby owner changed. */
+  roster: { players: readonly KBPlayer[]; ownerId: string | null; isOwner: boolean };
 }
 
-// Compile-time assertion that MatchController is a MatchLike (no runtime cost).
-export type _AssertMatchControllerIsMatchLike = MatchController extends MatchLike ? true : never;
-
 export interface GameController {
-  /** The authoritative match state + rules (read-only access for the UI). */
-  readonly match: MatchLike;
-  /** Networking/match events the UI subscribes to (re-exposed from the match). */
-  readonly events: Emitter<MatchEvents>;
-  /** The local human player's id. */
-  readonly humanId: string;
+  /** The replicated state. Read-only: mutating it would just be overwritten. */
+  readonly view: { readonly state: Readonly<MatchState> };
+  readonly events: Emitter<ControllerEvents>;
+  /** The local player's id ("" until the transport is ready). */
+  readonly playerId: string;
+  /** Whether the local player holds the lobby powers. Never `isHost`. */
+  readonly isOwner: boolean;
 
-  /** Begin the match (Lobby → Playing). */
-  start(): void;
-  /** Advance real time (called from the UI's update loop). */
-  tick(dtSeconds: number): void;
-  /** Demo action as the local human. */
-  addScore(points: number): SubmitResult;
-  /** Tear down timers/listeners. */
+  /** Ask the authority to do something. Fire-and-forget; may be rejected silently. */
+  sendIntent(intent: Intent): void;
+  /** Owner-only: open or close the lobby to new joins. Ignored for non-owners. */
+  setLobbyOpen(open: boolean): void;
   destroy(): void;
 }

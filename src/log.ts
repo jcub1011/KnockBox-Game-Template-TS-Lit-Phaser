@@ -8,10 +8,12 @@
  *     critical always print so production bug reports keep a trail), and
  *   - the KnockBox server logger when a multiplayer plugin is attached.
  *
- * The KnockBox logger lives on the plugin instance and only exists in
- * multiplayer modes, so it is resolved lazily through a getter wired once at
- * boot (see main.ts). Before the plugin is ready, or in solo mode, that sink is
- * a no-op — best-effort, matching the addon's own contract. Only the (already
+ * The KnockBox logger lives on the plugin instance, so it is resolved lazily
+ * through a getter wired once at boot (see main.ts). Every launch mode registers
+ * a plugin now — solo and multi-tab get the no-server peer, whose logger mirrors
+ * to the dev console — so the difference is only WHERE the line lands. Before the
+ * plugin is ready that sink is a no-op, best-effort, matching the addon's own
+ * contract. Only the (already
  * prefixed) message string is shipped to the server; rich `detail` args stay on
  * the local console and are never sent over the wire. Callers MUST keep PII
  * (player names, submitted words) out of the message string and pass it as a

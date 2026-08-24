@@ -1,0 +1,8 @@
+# CLI-managed by `knockbox addon` — reformatting these makes `knockbox addon check`
+# report MODIFIED and `knockbox addon update` refuse to run.
+addons/
+knockbox.json
+
+# Build output
+dist/
+dist-game/

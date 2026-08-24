@@ -3,5 +3,6 @@
   "name": "KnockBox Game Template",
   "entry": "index.html",
   "thumbnail": "thumb.svg",
-  "maxPlayers": 8
+  "maxPlayers": 8,
+  "serverAuthority": "authority.js"
 }

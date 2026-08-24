@@ -1,0 +1,22 @@
+{
+  // The authority module runs in the KnockBox server's sandbox: no DOM, no Node,
+  // no console, no fetch, no timers. The app's tsconfig has `lib: [... "DOM"]`
+  // and `types: ["node"]`, which would happily typecheck `document` or `process`
+  // inside code that will be running server-side. This narrow project is the
+  // guard. `npm run typecheck` runs both.
+  //
+  // `Date` still typechecks here (it's core ECMAScript, not DOM) even though the
+  // sandbox deletes it — eslint.config.js bans it for these files instead.
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "lib": ["ES2020"],
+    "types": [],
+    "noEmit": true
+  },
+  "include": [
+    "src/authority/kb.ts",
+    "src/authority/authority.ts",
+    "src/game/types.ts",
+    "src/game/rules.ts"
+  ]
+}

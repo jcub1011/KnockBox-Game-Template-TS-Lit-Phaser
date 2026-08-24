@@ -12,7 +12,7 @@ import { COLORS, prefersReducedMotion } from "../../theme";
 import { createLogger } from "../../log";
 import type { LaunchMode } from "../../net/launch";
 import { knockboxPluginConfig } from "../../net/knockboxPlugin";
-import type { NetPeer } from "../../net/knockBoxController";
+import type { KnockBoxTransport } from "../../net/transport";
 import { FxScene } from "./FxScene";
 
 const log = createLogger("fx");
@@ -30,12 +30,14 @@ class Fx {
   private shakeTarget?: HTMLElement;
 
   /** Boot the Phaser FX game into the given parent element. The KnockBox global
-   *  plugin (real or local-tab) is registered here when launched for multiplayer;
-   *  in solo mode no plugin is added. */
+   *  plugin is registered here for EVERY launch mode: the real WebSocket plugin on
+   *  the platform, and the no-server peer (running this game's own authority
+   *  module) for solo and multi-tab. One networking path, always. */
   init(parentId: string, mode: LaunchMode = "solo"): void {
     if (this.game) return;
     const net = knockboxPluginConfig(mode);
-    log.info(`FX init (launch=${mode}, KnockBox plugin ${net ? "registered" : "none"})`);
+    log.info(`FX init (launch=${mode}, KnockBox plugin ${net ? "registered" : "MISSING"})`);
+    if (!net) log.error("no KnockBox plugin class available — networking is disabled");
     this.game = new Phaser.Game({
       type: Phaser.AUTO,
       parent: parentId,
@@ -69,10 +71,12 @@ class Fx {
     });
   }
 
-  /** The KnockBox networking peer (the registered global plugin), if any. */
-  knockbox(): NetPeer | undefined {
+  /** The KnockBox networking peer (the registered global plugin), if any. All
+   *  launch modes register one — solo and local-tab get the no-server peer running
+   *  this game's authority module, platform gets the real WebSocket plugin. */
+  knockbox(): KnockBoxTransport | undefined {
     const plugins = this.game?.plugins as unknown as { get(key: string): unknown } | undefined;
-    return (plugins?.get("KnockBox") as NetPeer | undefined) ?? undefined;
+    return (plugins?.get("KnockBox") as KnockBoxTransport | undefined) ?? undefined;
   }
 
   /** Element whose transform is nudged for screen-shake (the UI root). */
