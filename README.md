@@ -17,12 +17,13 @@ authority loop working on the first run, then replace the placeholders with your
 
 ```bash
 npm install
-npm run dev          # http://localhost:5173
-npm test             # vitest
-npm run typecheck    # both TS projects (app + authority module)
-npm run build        # typecheck → app bundle → authority bundle → dist/
+npm run dev             # http://localhost:5173
+npm test                # vitest
+npm run typecheck       # both TS projects (app + authority module)
+npm run build           # typecheck → app bundle → authority bundle → dist/
 npm run lint
-npm run export:game  # package for KnockBox → dist-game/<id>.kbg
+npm run manifest:check  # is export/GAME.json shippable?
+npm run export:game     # manifest:check → build → dist-game/<id>.kbg
 ```
 
 Open `http://localhost:5173/?kbLocal=tab` in two browser tabs to play against yourself over the
@@ -124,6 +125,10 @@ upgrade breaks it, that file fails with an obvious message instead of a mystifyi
 addons/knockbox/      KnockBox client addons — installed and verified by the CLI. Do not edit.
 knockbox.json         Which addon versions this game is built against. Commit it.
 export/               KnockBox export metadata: GAME.json manifest + thumb.svg
+scripts/
+  check-manifest.mjs  Validates GAME.json against the marketplace schema before packing
+.github/workflows/
+  release.yml         Tag -> checks -> .kbg -> GitHub release -> marketplace entry
 vite.authority.config.ts   Lib-mode build producing the single-file dist/authority.js
 tsconfig.authority.json    Narrow TS project that denies the authority module DOM/Node globals
 src/
@@ -159,18 +164,22 @@ src/
 
 The template uses neutral `game-` / `Game*` identifiers. Rename these to your game:
 
-| What                  | Where                                                      | Change                                 |
-| --------------------- | ---------------------------------------------------------- | -------------------------------------- |
-| Package name          | `package.json` → `name`                                    | `knockbox-game-template` → `your-game` |
-| Page title            | `index.html` → `<title>` and `.boot-mark`                  | `KnockBox Game` → your title           |
-| Custom element        | `index.html`, `src/main.ts`, `src/ui/app/game-app.ts`      | `game-app` → `your-app`                |
-| Component classes     | `src/ui/app/game-app.ts`, `GameElement.ts`                 | `GameApp` / `GameElement` → your names |
-| CSS classes/keyframes | `src/ui/styles/base.css` + the `game-app.ts` render markup | `.game-*`, `game-shake`, `game-boot`   |
-| Export manifest       | `export/GAME.json`                                         | `id` and `name`                        |
+| What                  | Where                                                      | Change                                                                                  |
+| --------------------- | ---------------------------------------------------------- | --------------------------------------------------------------------------------------- |
+| Package name          | `package.json` → `name`                                    | `knockbox-game-template` → `your-game`                                                  |
+| Page title            | `index.html` → `<title>` and `.boot-mark`                  | `KnockBox Game` → your title                                                            |
+| Custom element        | `index.html`, `src/main.ts`, `src/ui/app/game-app.ts`      | `game-app` → `your-app`                                                                 |
+| Component classes     | `src/ui/app/game-app.ts`, `GameElement.ts`                 | `GameApp` / `GameElement` → your names                                                  |
+| CSS classes/keyframes | `src/ui/styles/base.css` + the `game-app.ts` render markup | `.game-*`, `game-shake`, `game-boot`                                                    |
+| Export manifest       | `export/GAME.json`                                         | `id`, `name`, `version`, `description`, `author`, `license`, `homepage`, `bugs`, `tags` |
 
 > Keep the `"KnockBox"` plugin key / `this.knockbox` mapping and the `"serverAuthority"` filename
 > `authority.js` as they are — those are the platform's contract, not template naming. (The packer
 > requires the module path to end in `.js`, so it cannot be renamed to `.mjs`.)
+
+> Picking `id`: it is the catalog key, the install directory **and** the URL segment, so renaming
+> it later is a reinstall rather than a metadata edit. If you'll publish to the shared catalog, use
+> `<owner>-<game>` — duplicate ids are refused, so the first publisher of a bare name holds it.
 
 ## Keeping the KnockBox addons current
 
@@ -205,23 +214,93 @@ file in Node to check `createAuthority` really is exported.
   build has emptied `dist/`. A bare `vite build` afterwards silently deletes it, and the next pack
   fails with `serverAuthority module not found in --in`. Always go through `npm run build`.
 - **Packing is slow on purpose** — Brotli at quality 11. Add `--quality 4` while iterating.
+- **The manifest's `version` is what stamps the package.** `knockbox pack --version` only
+  overrides the `.kbg` header's build label, so leave it off unless you want a label
+  `GAME.json` deliberately doesn't carry.
 - **Install into a local KnockBox platform** by pointing the packer at its games directory:
 
   ```bash
   KNOCKBOX_GAMES_DIR=/path/to/KnockBox-Games/games npm run export:game
   ```
 
-**Manifest (`export/GAME.json`) fields:**
+**Manifest (`export/GAME.json`) fields.** `GAME.json` is the single source of truth for all of
+this — the packer, the server and the marketplace all read it, and nothing here is declared
+anywhere else in the repo. **to publish** in the Required column means the server runs happily
+without it but the marketplace publish step refuses (or, worse, invents) a value.
 
-| Field            | Required | Notes                                                                   |
-| ---------------- | -------- | ----------------------------------------------------------------------- |
-| `id`             | yes      | Unique catalog key & URL segment; single path segment, no `/`.           |
-| `name`           | yes      | Display name in the lobby browser.                                       |
-| `entry`          | yes      | Entry HTML inside the build (`index.html`).                              |
-| `thumbnail`      | no       | Lobby thumbnail, relative to `export/` (`thumb.svg`).                    |
-| `maxPlayers`     | yes      | Maximum concurrent players (> 0).                                        |
-| `serverAuthority`| no       | The opt-in. A `.js` module in the build; never served to clients.        |
-| `authorityWords` | no       | Server-only dictionaries for `kb.words`. Requires `serverAuthority`.     |
+| Field | Required | Notes |
+|---|---|---|
+| `$schema` | no | Points at the marketplace's published schema so an editor autocompletes and validates this file. Ignored by the packer and the server. |
+| `id` | yes | Catalog key, install directory **and** URL segment; one path segment, no `/`. **Publishing to the shared catalog? Use `<owner>-<game>`.** The catalog refuses duplicate ids, so the first publisher of a bare name holds it for everyone — and renaming later is a reinstall, not a metadata edit. |
+| `name` | yes | Display name in the lobby browser. |
+| `version` | to publish | **Your build's** version, semver. Stamped into the `.kbg` header, and what the marketplace compares against an operator's installed copy to offer an update. |
+| `minAppVersion` | no | The **oldest server** this build runs on — a different question from `version`. Below it the game reports `Incompatible`, which outranks "update available", so it is never offered; an operator can force it with **Install Anyways**, which leaves the game *staged* rather than playable. Omit it and publishing declares `1.0.0` — "any server" — on your behalf. |
+| `maxAppVersion` | no | Inclusive upper bound. Rarely wanted: it locks the game out of every future server. |
+| `author` | to publish | Listing attribution; a bare string or `{ "name", "email" }`. |
+| `license` | no | SPDX identifier (`MIT`, `Apache-2.0`), shown in the listing. |
+| `homepage` / `bugs` | no | `https://` links shown in the listing. |
+| `contentRating` | no | Self-declared `everyone` / `teen` / `mature` — a platform label, not an ESRB/PEGI rating. Worth declaring even when it's `everyone`: added later, an absent rating can't be told apart from an unrated game. |
+| `description` | no | One line, matched by the home page's search box. Not drawn on the tile. |
+| `tags` | no | Category labels; drawn as chips on the tile and matched by search. |
+| `entry` | yes | Entry HTML inside the build (`index.html`). |
+| `thumbnail` | no | Lobby thumbnail, relative to `export/` (`thumb.svg`). |
+| `minPlayers` | no | Shown on the tile and used by the home page's **Players** filter; defaults to `1`. **Display only** — nothing is gated on it, so your game still loads for one player and shows its own "waiting for players" UI. The packer rejects a value outside `1..maxPlayers`; a server that meets one clamps it and warns rather than dropping the game. |
+| `maxPlayers` | yes | Maximum concurrent players (> 0); joins are refused past it. |
+| `createdAt` / `updatedAt` | no | ISO 8601 timestamps behind the home page's **Newest** and **Recently Updated** sorts. Omitted, the server derives them from this file's own timestamps — which for a `.kbg` means *when that build was installed*, and a reinstall resets it. Set `createdAt` to hold a stable position across releases. |
+| `themeColor` / `themeTextColor` | no | CSS colors the shell tints the in-game header with. Shell-validated, so an invalid value is ignored rather than injected. |
+| `crossOriginIsolated` | no | `true` only for threaded engine exports needing `SharedArrayBuffer`. Leave it off here. |
+| `serverAuthority` | no | The opt-in. A `.js` module in the build; never served to clients. |
+| `authorityWords` | no | Server-only dictionaries for `kb.words`. Requires `serverAuthority`. |
+| `sdk` | — | Don't write this one: `knockbox pack` stamps the installed addon versions into the *packaged* copy, leaving your file alone. It's how an operator spots a game running old client code. |
+
+## Publishing to the marketplace
+
+`npm run export:game` produces the artifact; getting it into the shared catalog is a second step,
+and it's where `version`, `minAppVersion`, `author`, `license`, `contentRating`, `homepage` and
+`bugs` actually take effect — the game server itself reads none of them.
+
+`.github/workflows/release.yml` already wires this up. Tag a commit and it runs the checks, packs
+the `.kbg`, creates the release, and registers the entry:
+
+```bash
+git tag v1.0.0 && git push origin v1.0.0
+```
+
+Add a `MARKETPLACE_TOKEN` secret (a PAT with write access to the catalog repo) to enable the last
+step; without it that step is skipped, so a game you only ever hand to your own servers needs no
+extra setup.
+
+### Failing fast
+
+An invalid manifest is caught in three places, deliberately overlapping:
+
+| Where | When | Catches |
+| --- | --- | --- |
+| Your editor | as you type | the `$schema` key makes the manifest self-validating |
+| `npm run manifest:check` | every `npm run export:game` | schema violations — packing is blocked |
+| `sync-catalog` | every publish | the same schema again, plus `author` / `description` / `minAppVersion` |
+
+The last one is the authority: it runs in the marketplace's own code and cannot be skipped, and it
+validates the catalog it writes as well as your manifest, so a rejected publish never leaves a
+broken entry behind. The first two exist so you hear about a typo in seconds rather than at release
+time.
+
+`manifest:check` also warns while `export/GAME.json` still holds this template's placeholder values,
+and the release workflow runs it as `--strict`, where those warnings become failures. That is on
+purpose: a catalog entry crediting "Your Name" and linking to `your-name/your-game` is the likeliest
+way a game built from this template reaches the marketplace broken.
+
+The action reads `export/GAME.json`, finds `dist-game/<id>.kbg`, hashes it and writes one catalog
+entry derived entirely from your manifest. Two things worth knowing:
+
+- **The catalog commits to a SHA-256, not to a URL.** The download URL is derived from the repo,
+  the tag and the `<id>.kbg` asset name, so the release has to carry the packer's output under
+  exactly that name — which the packer guarantees. A release missing the package fails the action
+  instead of publishing an entry that points at nothing.
+- **`minAppVersion` decides whether the game is offered at all.** It is compared against the
+  platform's own version, which is `0.1.0` today with no release tagged — so the `1.0.0` this
+  template declares reads `Incompatible` until the platform tags a 1.0.0 release. Local installs
+  never consult the bound: `KNOCKBOX_GAMES_DIR` and a hand-dropped `.kbg` are unaffected.
 
 ## Where to build next
 

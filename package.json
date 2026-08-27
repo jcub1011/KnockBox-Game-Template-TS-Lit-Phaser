@@ -1,9 +1,7 @@
 {
   "name": "knockbox-game-template",
-  "version": "0.1.0",
   "private": true,
   "type": "module",
-  "description": "A TypeScript + Lit + Phaser starter template for building server-authoritative networked games on the KnockBox platform.",
   "scripts": {
     "dev": "vite",
     "typecheck": "tsc --noEmit && tsc -p tsconfig.authority.json",
@@ -17,25 +15,28 @@
     "lint:fix": "eslint . --fix",
     "format": "prettier --write \"src/**/*.{ts,css}\"",
     "format:check": "prettier --check \"src/**/*.{ts,css}\"",
+    "manifest:check": "node scripts/check-manifest.mjs",
     "addon:check": "knockbox addon check",
     "addon:update": "knockbox addon update",
-    "export:game": "knockbox pack --build \"npm run build\" --in dist --manifest export/GAME.json --out dist-game/"
+    "export:game": "npm run manifest:check && knockbox pack --build \"npm run build\" --in dist --manifest export/GAME.json --out dist-game/"
   },
   "dependencies": {
     "lit": "^3.3.3",
-    "phaser": "^4.1.0"
+    "phaser": "^4.2.1"
   },
   "devDependencies": {
+    "@cfworker/json-schema": "^4.1.1",
     "@eslint/js": "^10.0.1",
-    "@types/node": "^25.9.3",
-    "eslint": "^10.5.0",
+    "@types/node": "^25.9.5",
+    "eslint": "^10.9.1",
     "eslint-config-prettier": "^10.1.8",
-    "happy-dom": "^20.10.4",
+    "globals": "^17.11.0",
+    "happy-dom": "^20.11.12",
     "knockbox-cli": "^1.1.0",
-    "prettier": "^3.8.4",
-    "typescript": "^5.5.0",
-    "typescript-eslint": "^8.61.1",
-    "vite": "^8.0.16",
-    "vitest": "^4.1.9"
+    "prettier": "^3.9.6",
+    "typescript": "^5.9.3",
+    "typescript-eslint": "^8.68.0",
+    "vite": "^8.2.2",
+    "vitest": "^4.1.11"
   }
 }

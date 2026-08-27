@@ -1,8 +1,19 @@
 {
+  "$schema": "https://raw.githubusercontent.com/jcub1011/KnockBox-Games-Marketplace/refs/heads/main/schemas/plugin.schema.json",
   "id": "knockbox-game-template",
   "name": "KnockBox Game Template",
+  "version": "0.1.0",
+  "description": "A starter template for building server-authoritative KnockBox games.",
+  "author": { "name": "Your Name" },
+  "license": "MIT",
+  "homepage": "https://github.com/your-name/your-game",
+  "bugs": "https://github.com/your-name/your-game/issues",
+  "contentRating": "everyone",
+  "minAppVersion": "1.0.0",
   "entry": "index.html",
   "thumbnail": "thumb.svg",
+  "minPlayers": 1,
   "maxPlayers": 8,
+  "tags": ["template", "example"],
   "serverAuthority": "authority.js"
 }

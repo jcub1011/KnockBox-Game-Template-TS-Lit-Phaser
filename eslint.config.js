@@ -1,6 +1,7 @@
 import js from "@eslint/js";
 import tseslint from "typescript-eslint";
 import prettier from "eslint-config-prettier";
+import globals from "globals";
 
 /**
  * Flat ESLint config. TypeScript-aware (non type-checked, so it stays fast and
@@ -14,6 +15,17 @@ export default tseslint.config(
   },
   js.configs.recommended,
   ...tseslint.configs.recommended,
+  {
+    /*
+     * Build-time tooling that runs in Node, not in a browser or the sandbox: it legitimately uses
+     * `process`, `console`, `fetch` and timers, which are undefined as far as the browser-facing
+     * config above is concerned.
+     */
+    files: ["scripts/**/*.mjs"],
+    languageOptions: {
+      globals: globals.node,
+    },
+  },
   {
     files: ["**/*.ts"],
     rules: {

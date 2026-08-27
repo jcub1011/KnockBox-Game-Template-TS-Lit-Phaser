@@ -139,27 +139,37 @@ export class GameApp extends GameElement {
           ${players.length === 0 ? html`<li>waiting for players…</li>` : nothing}
         </ul>
 
-        ${phase === "Lobby"
-          ? html`<button @click=${() => this.send({ kind: "start" })}>Start match</button>`
-          : nothing}
-        ${phase === "Playing"
-          ? html`
-              <p class="game-sub">first to ${TARGET_SCORE} wins</p>
-              <button @click=${() => this.send({ kind: "score", points: 1 })}>+1</button>
-            `
-          : nothing}
-        ${phase === "GameOver"
-          ? html`<p class="game-score">${winner ? `${winner.displayName} wins!` : "match over"}</p>`
-          : nothing}
-        ${this.isOwner
-          ? html`
-              <p>
-                <button @click=${() => this.toggleLobby()}>
-                  ${this.lobbyOpen ? "Close lobby" : "Open lobby"}
-                </button>
-              </p>
-            `
-          : nothing}
+        ${
+          phase === "Lobby"
+            ? html`<button @click=${() => this.send({ kind: "start" })}>Start match</button>`
+            : nothing
+        }
+        ${
+          phase === "Playing"
+            ? html`
+                <p class="game-sub">first to ${TARGET_SCORE} wins</p>
+                <button @click=${() => this.send({ kind: "score", points: 1 })}>+1</button>
+              `
+            : nothing
+        }
+        ${
+          phase === "GameOver"
+            ? html`<p class="game-score">
+                ${winner ? `${winner.displayName} wins!` : "match over"}
+              </p>`
+            : nothing
+        }
+        ${
+          this.isOwner
+            ? html`
+                <p>
+                  <button @click=${() => this.toggleLobby()}>
+                    ${this.lobbyOpen ? "Close lobby" : "Open lobby"}
+                  </button>
+                </p>
+              `
+            : nothing
+        }
       </main>
     `;
   }

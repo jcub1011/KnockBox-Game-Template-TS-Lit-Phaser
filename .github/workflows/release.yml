@@ -1,0 +1,92 @@
+# Build, package and publish a release of this game.
+#
+# Tag a commit (`git tag v1.0.0 && git push origin v1.0.0`) and this runs: checks, then a `.kbg`
+# attached to a GitHub release, then a marketplace catalog entry.
+#
+# The checks are ordered cheapest-first on purpose. `manifest:check --strict` runs before the build,
+# because Brotli at quality 11 takes a while and there is no reason to spend it discovering that the
+# manifest still credits "Your Name". The marketplace validates the same manifest again at publish
+# time and cannot be skipped — this job exists so you hear about it in seconds instead.
+name: Release
+
+on:
+  push:
+    tags: ["v*"]
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Tag to release (must already exist, e.g. v1.0.0)"
+        type: string
+        required: true
+      draft:
+        description: "Create the release as a draft (skips the marketplace)"
+        type: boolean
+        default: false
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    # Surfaced as env because a step-level `if` cannot read the `secrets` context, and the
+    # marketplace step has to be skippable for a game that is never published to the catalog.
+    env:
+      MARKETPLACE_TOKEN: ${{ secrets.MARKETPLACE_TOKEN }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+
+      - run: npm ci
+
+      # Fast gates first: seconds, and they catch most of what goes wrong.
+      - name: Manifest is ready to ship
+        run: npm run manifest:check -- --strict
+
+      - name: Vendored addons are intact
+        run: npm run addon:check
+
+      - run: npm run lint
+      - run: npm run typecheck
+      - run: npm run test
+
+      # Builds the app, builds the authority module, then packs dist/ into dist-game/<id>.kbg.
+      - name: Build and package
+        run: npm run export:game
+
+      - name: Resolve tag and package name
+        id: meta
+        run: |
+          tag="${{ inputs.tag || github.ref_name }}"
+          id="$(node -p "require('./export/GAME.json').id")"
+          version="$(node -p "require('./export/GAME.json').version")"
+          echo "tag=$tag" >> "$GITHUB_OUTPUT"
+          echo "package=dist-game/$id.kbg" >> "$GITHUB_OUTPUT"
+          echo "Packaging $id $version for tag $tag"
+          test -f "dist-game/$id.kbg"
+
+      # `gh` ships on the runner, so this needs no third-party action on the release path.
+      - name: Create the GitHub release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create "${{ steps.meta.outputs.tag }}" \
+            "${{ steps.meta.outputs.package }}" \
+            --title "${{ steps.meta.outputs.tag }}" \
+            --generate-notes \
+            ${{ inputs.draft && '--draft' || '' }}
+
+      # Registers this release in the shared catalog. Needs a MARKETPLACE_TOKEN secret; without one
+      # the step is skipped, so a game distributed only to your own servers needs no extra setup.
+      - name: Sync to marketplace catalog
+        if: ${{ !inputs.draft && env.MARKETPLACE_TOKEN != '' }}
+        uses: jcub1011/KnockBox-Games-Marketplace/.github/actions/sync-catalog@main
+        with:
+          tag: ${{ steps.meta.outputs.tag }}
+          marketplace-token: ${{ secrets.MARKETPLACE_TOKEN }}
+          # game-json-path: export/GAME.json   (default — already where this template keeps it)
+          # package-dir:    dist-game          (default — already where export:game writes)
