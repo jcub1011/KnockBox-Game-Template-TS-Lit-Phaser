@@ -128,7 +128,7 @@ export/               KnockBox export metadata: GAME.json manifest + thumb.svg
 scripts/
   check-manifest.mjs  Validates GAME.json against the marketplace schema before packing
 .github/workflows/
-  release.yml         Tag -> checks -> .kbg -> GitHub release -> marketplace entry
+  release.yml         Manual dispatch -> checks -> .kbg -> GitHub release + tag -> marketplace entry
 vite.authority.config.ts   Lib-mode build producing the single-file dist/authority.js
 tsconfig.authority.json    Narrow TS project that denies the authority module DOM/Node globals
 src/
@@ -259,16 +259,13 @@ without it but the marketplace publish step refuses (or, worse, invents) a value
 and it's where `version`, `minAppVersion`, `author`, `license`, `contentRating`, `homepage` and
 `bugs` actually take effect — the game server itself reads none of them.
 
-`.github/workflows/release.yml` already wires this up. Tag a commit and it runs the checks, packs
-the `.kbg`, creates the release, and registers the entry:
+`.github/workflows/release.yml` wires this up via a manual workflow dispatch (`Actions` → `Release` → **Run workflow**):
 
-```bash
-git tag v1.0.0 && git push origin v1.0.0
-```
+- **Dynamic Tagging:** Sourced directly from `version` in `export/GAME.json` (e.g. `0.1.0` becomes `v0.1.0`).
+- **Replace Existing Tag:** Overwrites an existing release and tag with the same version number if enabled. When `false` (the default), the workflow checks early and fails immediately if the tag already exists.
+- **Draft:** Builds and packages the game and uploads the `.kbg` as a workflow build artifact without creating a git tag, creating a GitHub release, or updating the marketplace.
 
-Add a `MARKETPLACE_TOKEN` secret (a PAT with write access to the catalog repo) to enable the last
-step; without it that step is skipped, so a game you only ever hand to your own servers needs no
-extra setup.
+Add a `MARKETPLACE_TOKEN` secret (a PAT with write access to the catalog repo) to enable marketplace sync; without it that step is skipped, so a game you only ever hand to your own servers needs no extra setup.
 
 ### Failing fast
 

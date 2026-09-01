@@ -1,25 +1,30 @@
 # Build, package and publish a release of this game.
 #
-# Tag a commit (`git tag v1.0.0 && git push origin v1.0.0`) and this runs: checks, then a `.kbg`
-# attached to a GitHub release, then a marketplace catalog entry.
+# Run this workflow manually from GitHub Actions (`Actions` -> `Release` -> `Run workflow`).
+# It sources the version from `export/GAME.json` (e.g. `v0.1.0`), runs quality checks, packages
+# the `.kbg` bundle, creates the release tag, attaches the asset to a GitHub release, and registers
+# the marketplace catalog entry.
 #
-# The checks are ordered cheapest-first on purpose. `manifest:check --strict` runs before the build,
-# because Brotli at quality 11 takes a while and there is no reason to spend it discovering that the
-# manifest still credits "Your Name". The marketplace validates the same manifest again at publish
-# time and cannot be skipped — this job exists so you hear about it in seconds instead.
+# Use the "Replace Existing Tag" input to overwrite an existing release with the same version number.
+# Use the "Draft" input to build and upload the `.kbg` as a workflow build artifact without creating
+# a tag, creating a GitHub release, or updating the marketplace.
+#
+# The checks are ordered cheapest-first on purpose. Tag collision and `manifest:check --strict` run
+# before the build, because Brotli at quality 11 takes a while and there is no reason to spend it
+# discovering that the tag already exists or the manifest still credits "Your Name". The marketplace
+# validates the same manifest again at publish time and cannot be skipped — this job exists so you
+# hear about it in seconds instead.
 name: Release
 
 on:
-  push:
-    tags: ["v*"]
   workflow_dispatch:
     inputs:
-      tag:
-        description: "Tag to release (must already exist, e.g. v1.0.0)"
-        type: string
-        required: true
+      replace_existing_tag:
+        description: "Replace Existing Tag"
+        type: boolean
+        default: false
       draft:
-        description: "Create the release as a draft (skips the marketplace)"
+        description: "Draft (upload build artifact only; skips tag, release, and marketplace)"
         type: boolean
         default: false
 
@@ -41,6 +46,44 @@ jobs:
           node-version: "22"
           cache: npm
 
+      - name: Resolve release metadata
+        id: meta
+        run: |
+          id="$(node -p "require('./export/GAME.json').id")"
+          version="$(node -p "require('./export/GAME.json').version")"
+          tag="v${version#v}"
+          echo "id=$id" >> "$GITHUB_OUTPUT"
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+          echo "tag=$tag" >> "$GITHUB_OUTPUT"
+          echo "package=dist-game/$id.kbg" >> "$GITHUB_OUTPUT"
+          echo "Resolved game '$id' version '$version' -> tag '$tag'"
+
+      - name: Check for existing tag
+        if: ${{ !inputs.draft }}
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          tag="${{ steps.meta.outputs.tag }}"
+          replace_existing="${{ inputs.replace_existing_tag }}"
+
+          tag_exists=false
+          if git ls-remote --tags origin "refs/tags/$tag" | grep -q "refs/tags/$tag"; then
+            tag_exists=true
+          elif gh release view "$tag" >/dev/null 2>&1; then
+            tag_exists=true
+          fi
+
+          if [ "$tag_exists" = "true" ]; then
+            if [ "$replace_existing" != "true" ]; then
+              echo "::error::Tag '$tag' already exists and 'Replace Existing Tag' is false. Please bump version in export/GAME.json or enable 'Replace Existing Tag'."
+              exit 1
+            else
+              echo "Tag '$tag' already exists, but 'Replace Existing Tag' is true. Existing release and tag will be replaced."
+            fi
+          else
+            echo "Tag '$tag' does not exist. Proceeding with release."
+          fi
+
       - run: npm ci
 
       # Fast gates first: seconds, and they catch most of what goes wrong.
@@ -58,27 +101,42 @@ jobs:
       - name: Build and package
         run: npm run export:game
 
-      - name: Resolve tag and package name
-        id: meta
-        run: |
-          tag="${{ inputs.tag || github.ref_name }}"
-          id="$(node -p "require('./export/GAME.json').id")"
-          version="$(node -p "require('./export/GAME.json').version")"
-          echo "tag=$tag" >> "$GITHUB_OUTPUT"
-          echo "package=dist-game/$id.kbg" >> "$GITHUB_OUTPUT"
-          echo "Packaging $id $version for tag $tag"
-          test -f "dist-game/$id.kbg"
+      - name: Verify package output
+        run: test -f "${{ steps.meta.outputs.package }}"
 
-      # `gh` ships on the runner, so this needs no third-party action on the release path.
-      - name: Create the GitHub release
+      - name: Upload build artifact (draft)
+        if: ${{ inputs.draft }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ steps.meta.outputs.id }}-kbg
+          path: ${{ steps.meta.outputs.package }}
+          if-no-files-found: error
+
+      - name: Create or replace GitHub release
+        if: ${{ !inputs.draft }}
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          gh release create "${{ steps.meta.outputs.tag }}" \
-            "${{ steps.meta.outputs.package }}" \
-            --title "${{ steps.meta.outputs.tag }}" \
-            --generate-notes \
-            ${{ inputs.draft && '--draft' || '' }}
+          tag="${{ steps.meta.outputs.tag }}"
+          package="${{ steps.meta.outputs.package }}"
+          replace_existing="${{ inputs.replace_existing_tag }}"
+
+          if [ "$replace_existing" = "true" ]; then
+            if gh release view "$tag" >/dev/null 2>&1; then
+              echo "Deleting existing release '$tag'..."
+              gh release delete "$tag" --yes --cleanup-tag
+            fi
+            if git ls-remote --tags origin "refs/tags/$tag" | grep -q "refs/tags/$tag"; then
+              echo "Deleting existing remote tag '$tag'..."
+              git push origin --delete "$tag" || true
+            fi
+          fi
+
+          gh release create "$tag" \
+            "$package" \
+            --title "$tag" \
+            --target "${{ github.sha }}" \
+            --generate-notes
 
       # Registers this release in the shared catalog. Needs a MARKETPLACE_TOKEN secret; without one
       # the step is skipped, so a game distributed only to your own servers needs no extra setup.
