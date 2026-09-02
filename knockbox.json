@@ -2,14 +2,14 @@
   "$comment": "Written by `knockbox addon`. Commit this: it records which addon versions this game was built against, `knockbox addon check` verifies the files against it, and `knockbox pack` stamps it into the shipped .kbg.",
   "addons": {
     "phaser": {
-      "version": "1.1.0",
-      "minAppVersion": "1.0.0",
+      "version": "1.1.1",
+      "minAppVersion": "0.1.0",
       "files": {
         "addons/knockbox/LICENSE": "b9bed22e9e1117512944f99001217bee04269d0544a652e07d836c4993147718",
         "addons/knockbox/README.md": "67d53b28c6ca13c9869c3144e13be3b80407aa380035f0412bda115f0804bc81",
         "addons/knockbox/kb-authority.js": "9297aea46731e5cf21ab18622a403afb4d55799a6601c051e697f0eef25cde5e",
         "addons/knockbox/kb-core.js": "12eef8e1acdb4fa1710fd1984dec429130d2270c9f7201dca4bfae4b66896a83",
-        "addons/knockbox/knockbox-local.js": "35ff5bda9b3d4949dd6c9d656b1e998cd7ef1ea5343d20aacb5bd3d65218faa2",
+        "addons/knockbox/knockbox-local.js": "0bc505a0da815897896187f5573c58a459237160024c8449298c746a660c9771",
         "addons/knockbox/knockbox-phaser.d.ts": "b8322a8bcafdc694bd54da9e030b25b774d1a85f064422f5c4fa0f9a441a71ea",
         "addons/knockbox/knockbox-plugin.js": "98990a5e03a2d7d0b32653da53bd32fcf7c1b6724b69bb65c436158bb623b47c"
       }
