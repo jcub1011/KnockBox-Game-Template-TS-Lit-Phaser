@@ -16,9 +16,9 @@
     "format": "prettier --write \"src/**/*.{ts,css}\"",
     "format:check": "prettier --check \"src/**/*.{ts,css}\"",
     "manifest:check": "node scripts/check-manifest.mjs",
-    "addon:check": "knockbox addon check",
-    "addon:update": "knockbox addon update",
-    "export:game": "npm run manifest:check && knockbox pack --build \"npm run build\" --in dist --manifest export/GAME.json --out dist-game/"
+    "addon:check": "node node_modules/knockbox-cli/knockbox.mjs addon check",
+    "addon:update": "node node_modules/knockbox-cli/knockbox.mjs addon update",
+    "export:game": "npm run manifest:check && node node_modules/knockbox-cli/knockbox.mjs pack --build \"npm run build\" --in dist --manifest export/GAME.json --out dist-game/"
   },
   "dependencies": {
     "lit": "^3.3.3",
