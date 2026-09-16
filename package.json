@@ -21,22 +21,22 @@
     "export:game": "npm run manifest:check && node node_modules/knockbox-cli/knockbox.mjs pack --build \"npm run build\" --in dist --manifest export/GAME.json --out dist-game/"
   },
   "dependencies": {
-    "lit": "^3.3.3",
-    "phaser": "^4.2.1"
+    "lit": "3.x",
+    "phaser": "4.x"
   },
   "devDependencies": {
-    "@cfworker/json-schema": "^4.1.1",
-    "@eslint/js": "^10.0.1",
-    "@types/node": "^25.9.5",
-    "eslint": "^10.9.1",
-    "eslint-config-prettier": "^10.1.8",
-    "globals": "^17.11.0",
-    "happy-dom": "^20.11.12",
-    "knockbox-cli": "^1.1.0",
-    "prettier": "^3.9.6",
-    "typescript": "^5.9.3",
-    "typescript-eslint": "^8.68.0",
-    "vite": "^8.2.2",
-    "vitest": "^4.1.11"
+    "@cfworker/json-schema": "4.x",
+    "@eslint/js": "10.x",
+    "@types/node": "24.x",
+    "eslint": "10.x",
+    "eslint-config-prettier": "10.x",
+    "globals": "17.x",
+    "happy-dom": "20.x",
+    "knockbox-cli": "1.x",
+    "prettier": "3.x",
+    "typescript": "6.x",
+    "typescript-eslint": "8.x",
+    "vite": "8.x",
+    "vitest": "5.x"
   }
 }
