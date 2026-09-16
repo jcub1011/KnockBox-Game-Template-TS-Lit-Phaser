@@ -11,9 +11,10 @@
 #
 # The checks are ordered cheapest-first on purpose. Tag collision and `manifest:check --strict` run
 # before the build, because Brotli at quality 11 takes a while and there is no reason to spend it
-# discovering that the tag already exists or the manifest still credits "Your Name". The marketplace
-# validates the same manifest again at publish time and cannot be skipped — this job exists so you
-# hear about it in seconds instead.
+# discovering that the tag already exists or the manifest still credits "Your Name". Both are skipped
+# for drafts so trial builds work straight from the template. The marketplace validates the same
+# manifest again at publish time and cannot be skipped — this job exists so you hear about it in
+# seconds instead.
 name: Release
 
 on:
@@ -87,7 +88,10 @@ jobs:
       - run: npm install
 
       # Fast gates first: seconds, and they catch most of what goes wrong.
+      # Skipped for drafts so template placeholders don't block trial builds; the non-strict
+      # check still runs (as warnings) inside `export:game` below.
       - name: Manifest is ready to ship
+        if: ${{ !inputs.draft }}
         run: npm run manifest:check -- --strict
 
       - name: Vendored addons are intact
